@@ -1,5 +1,5 @@
-// Setup TC4 in 32-bit mode to count incoming pulses on digital pin D1 using the Event System
-// D1 (port pin PA4)
+// Setup TC4 in 32-bit mode to count incoming pulses on digital pin D1 or D12 using the Event System
+// for D1 or D12
 #include <si5351.h>
 /* 
 Code used to calibrate the S!5351 crystal using GPS pulse per second signals as a reference and a SAMD21 proceor
