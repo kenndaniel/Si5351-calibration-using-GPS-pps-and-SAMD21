@@ -1,4 +1,4 @@
-Code used to calibrate the S!5351 crystal using GPS pulse per second signals as a reference and a SAMD21 proceor
+Code used to calibrate the Si5351 crystal using GPS pulse per second signals as a reference and a SAMD21 proceor
 as found on the Seeduino XIAO or Arduino MKR Zero.
 Sets the frequency of the Si5351 to 2.5 MHz and counts for 10 seconds (longer periods givs no appreciable
 increase in accuracy)
