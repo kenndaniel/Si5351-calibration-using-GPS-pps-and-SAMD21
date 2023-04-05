@@ -9,27 +9,18 @@ increase in accuracy)
 Author Ken Daniel K9YO
 Original code https://github.com/ocrdu/Arduino_SAMD21_pulse_frequency_counters
 Uses Eitherkit Si5351 library v 2.1.4
-Si5351 Clock2 - D1 or D12 (only) Changed by commenting #define COUNTER_ON_PIN_1 
+Si5351 Clock2 - D1 XIOA  or A4 MKR Zero (PA04) 
 GPS pps signal - D0  Can be moved to other pins.
 */
 
 Si5351 si5351;
-const byte interruptPinPPS =0;
-#define COUNTER_ON_PIN_1    // D1 -- Comment out this line to use D12 as the counter input
-#ifdef COUNTER_ON_PIN_1
-  // Modifications required to use D1 as the high-speed counter pin
-  #define COUNTER_PIN 1
-  #define EIC_EVCtrl EIC_EVCTRL_EXTINTEO4 // Enable event output on external interrupt 4 (D1)
-  #define EIC_Config EIC_CONFIG_SENSE4_HIGH // Set event detecting a HIGH level on interrupt 4
-  #define EIC_IntenClr EIC_INTENCLR_EXTINT4 // Disable interrupts on interrupt 4 
+const byte interruptPinPPS =0;  // GPS Pulse Per Second Signal
+//#define COUNTER_PIN 1  // Set to 1 for XIOA pin 1.
+#define COUNTER_PIN 18  //  Set to 18 for MKE Zero pin A3 
+#define EIC_EVCtrl EIC_EVCTRL_EXTINTEO4 // Enable event output on external interrupt 4 (D1)
+#define EIC_Config EIC_CONFIG_SENSE4_HIGH // Set event detecting a HIGH level on interrupt 4
+#define EIC_IntenClr EIC_INTENCLR_EXTINT4 // Disable interrupts on interrupt 4 
 
-#else
-  // Modifications required to use D12 as the high-speed counter pin
-  #define COUNTER_PIN 12
-  #define EIC_EVCtrl EIC_EVCTRL_EXTINTEO3 // Enable event output on external interrupt 3 (D12)
-  #define EIC_Config EIC_CONFIG_SENSE3_HIGH // Set event detecting a HIGH level on interrupt 4
-  #define EIC_IntenClr EIC_INTENCLR_EXTINT3 // Disable interrupts on interrupt 4 
-#endif
 
 void setup() {
   SerialUSB.begin(115200);

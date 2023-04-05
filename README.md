@@ -5,10 +5,10 @@ increase in accuracy)
 
 Author Ken Daniel K9YO
 
-Original Author https://github.com/ocrdu/Arduino_SAMD21_pulse_frequency_counters
+Adapted from https://github.com/ocrdu/Arduino_SAMD21_pulse_frequency_counters
 
 Uses Eitherkit Si5351 library v 2.1.4 
 
-Si5351 Clock2 - D1 or D12 (only) Changed by commenting #define COUNTER_ON_PIN_1 
+Si5351 Clock2 - D1 on XIAO or A3 on the MKE Zero (using #define)
 
 GPS pps signal - D0  Can be moved to other pins.
