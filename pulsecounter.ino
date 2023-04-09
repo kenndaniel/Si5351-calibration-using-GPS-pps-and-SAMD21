@@ -17,7 +17,7 @@ Si5351 si5351;
 const byte interruptPinPPS =0;  // GPS Pulse Per Second Signal
 //#define COUNTER_PIN 1  // Set to 1 for XIOA pin 1.
 #define COUNTER_PIN 18  //  Set to 18 for MKE Zero pin A3 
-#define EIC_EVCtrl EIC_EVCTRL_EXTINTEO4 // Enable event output on external interrupt 4 (D1)
+#define EIC_EVCtrl EIC_EVCTRL_EXTINTEO4 // Enable event output on external interrupt 4 
 #define EIC_Config EIC_CONFIG_SENSE4_HIGH // Set event detecting a HIGH level on interrupt 4
 #define EIC_IntenClr EIC_INTENCLR_EXTINT4 // Disable interrupts on interrupt 4 
 
@@ -133,16 +133,14 @@ void PPSinterrupt()
     TC4->COUNT32.CTRLBSET.reg = TC_CTRLBSET_CMD_RETRIGGER;   // Retrigger the TC4 timer
     while (TC4->COUNT32.STATUS.bit.SYNCBUSY);                // Wait for synchronization
   }
-  else if (tcount == 14)  //The 40 second counting time has elapsed - stop counting
+  else if (tcount == 14)  //The 10 second counting time has elapsed - stop counting
   {     
 
     SiCnt=TC4->COUNT32.COUNT.reg; 
-    XtalFreq = 120 + (SiCnt);  // 120 is a fudge factor
+    XtalFreq =  SiCnt;  // 120 is a fudge factor
     correction = 25000000./(float)XtalFreq;
-    // I found that adjusting the transmit freq gives a cleaner signal
+    // I found that adjusting the transmit freq gives a cleaner signal than setting ppb
 
-    //mult = 0;
-    //tcount = 0;                              //Reset the seconds counter
     CalibrationDone = true;                  
   }
 }
