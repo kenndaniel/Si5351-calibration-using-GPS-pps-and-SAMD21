@@ -77,11 +77,15 @@ void setup() {
   int count = 0;
 void loop() {
   //Serial.println(TC4->COUNT32.COUNT.reg);                  // Output the results
-  delay(10000);
+  delay(4000);
   count++;
 
   if(CalibrationDone == true)
     {
+    si5351.output_enable(SI5351_CLK2, 0);   // disable output 
+    unsigned long calfreq = 28126100UL*correction;
+    si5351.set_freq(calfreq*100, SI5351_CLK0);  // set frequency
+    si5351.output_enable(SI5351_CLK0, 1);   // enable output  
     Serial.print(" Xtal count = ");
     Serial.print(SiCnt);
     Serial.print(" correction = ");
@@ -103,10 +107,13 @@ void si5351_calibrate_init()
   //int32_t cal_factor = 1000000000  - 1000125640;
   //si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
   si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA); //  Check datasheet.
+  si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_8MA); 
   //unsigned long calfreq = 2500000UL;
   unsigned long calfreq = 2500000UL;
   si5351.set_freq(calfreq*100, SI5351_CLK2);  // set calibration frequency to 2.5 MHz
   si5351.output_enable(SI5351_CLK2, 1);   // Enable output  
+  si5351.output_enable(SI5351_CLK0, 0);   // disable output 
+
 }
 
 
@@ -133,11 +140,12 @@ void PPSinterrupt()
     TC4->COUNT32.CTRLBSET.reg = TC_CTRLBSET_CMD_RETRIGGER;   // Retrigger the TC4 timer
     while (TC4->COUNT32.STATUS.bit.SYNCBUSY);                // Wait for synchronization
   }
+  //else if (tcount == 5)  {SiCnt=TC4->COUNT32.COUNT.reg;}
   else if (tcount == 14)  //The 10 second counting time has elapsed - stop counting
   {     
 
-    SiCnt=TC4->COUNT32.COUNT.reg; 
-    XtalFreq =  SiCnt;  // 120 is a fudge factor
+    SiCnt=TC4->COUNT32.COUNT.reg - SiCnt +40UL; // 40 is a fudge factor
+    XtalFreq =  SiCnt; 
     correction = 25000000./(float)XtalFreq;
     // I found that adjusting the transmit freq gives a cleaner signal than setting ppb
 
