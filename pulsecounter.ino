@@ -14,17 +14,25 @@ GPS pps signal - D0  Can be moved to other pins.
 */
 
 Si5351 si5351;
-const byte interruptPinPPS =0;  // GPS Pulse Per Second Signal
+const byte interruptPinPPS = 0;  // GPS Pulse Per Second Signal
 //#define COUNTER_PIN 1  // Set to 1 for XIOA pin 1.
 #define COUNTER_PIN 18  //  Set to 18 for MKE Zero pin A3 
 #define EIC_EVCtrl EIC_EVCTRL_EXTINTEO4 // Enable event output on external interrupt 4 
 #define EIC_Config EIC_CONFIG_SENSE4_HIGH // Set event detecting a HIGH level on interrupt 4
 #define EIC_IntenClr EIC_INTENCLR_EXTINT4 // Disable interrupts on interrupt 4 
+#define TXCO_FREQ 27000000   // Reference frequency for Si5351
+//#define TXCO_FREQ 25000000
+#define CALCLK SI5351_CLK4  // 2.5 MHz Si5351 clock
+#define RFPIN 5  // Si5351 power pin (if used)
+#define DBGPIN LED_BUILTIN
+#define BIAS_ERROR 0UL    // Cycles in 10 sec
 
 
 void setup() {
   SerialUSB.begin(115200);
   while(!SerialUSB);
+  pinMode(RFPIN,OUTPUT);
+  pinMode(DBGPIN,OUTPUT);
 
   // Generic Clock 
   GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN |                 // Enable the generic clock
@@ -65,7 +73,7 @@ void setup() {
 
   // setup pulse per second GPS interrupt
   pinMode(interruptPinPPS, INPUT_PULLUP); 
-  attachInterrupt(digitalPinToInterrupt(interruptPinPPS), PPSinterrupt, RISING);               // Wait for synchronization
+  attachInterrupt(digitalPinToInterrupt(interruptPinPPS), PPSinterrupt, RISING);     // Wait for synchronization
   si5351_calibrate_init();
 
 }
@@ -77,19 +85,29 @@ void setup() {
   int count = 0;
 void loop() {
   //Serial.println(TC4->COUNT32.COUNT.reg);                  // Output the results
-  delay(4000);
+  delay(1000);
   count++;
+    Serial.println(count);
+ 
 
   if(CalibrationDone == true)
     {
     si5351.output_enable(SI5351_CLK2, 0);   // disable output 
-    unsigned long calfreq = 28126100UL*correction;
+    unsigned long calfreq = 10000000UL*correction;
     si5351.set_freq(calfreq*100, SI5351_CLK0);  // set frequency
     si5351.output_enable(SI5351_CLK0, 1);   // enable output  
     Serial.print(" Xtal count = ");
     Serial.print(SiCnt);
     Serial.print(" correction = ");
-    Serial.println(correction);
+    Serial.println(correction,7);
+    while(true)
+    {     // This is to make the signal easy to identify on RTS-SDR
+          si5351.output_enable(SI5351_CLK0, 1); 
+          delay(300);
+          si5351.output_enable(SI5351_CLK0, 0); 
+          delay(300);
+    }
+
     } 
     
 }
@@ -97,21 +115,21 @@ void loop() {
 void si5351_calibrate_init()
 {
   // Initialize SI5351 for gps calibration
-  //digitalWrite(RFPIN, HIGH);
-  //delay(2000);
+  digitalWrite(RFPIN, HIGH);
+  delay(100);
   //POUTPUTLN((F(" SI5351 Initialized ")));
-  bool siInit = si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);    //  25MHz
-  delay(2000);
-  if (siInit == false) {Serial.println(" XXXXXXXXX Si5351 init failure XXXXXX");}
+  bool siInit = si5351.init(SI5351_CRYSTAL_LOAD_8PF, TXCO_FREQ, 0);    //  25MHz
+  delay(10);
+  if (siInit == false) {Serial.println(" XXXXXXXXX Si5351 i2c failure XXXXXX");}
   //else {POUTPUTLN((F(" SI5355  Init Success")));}
   //int32_t cal_factor = 1000000000  - 1000125640;
   //si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
-  si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA); //  Check datasheet.
+  si5351.drive_strength(CALCLK, SI5351_DRIVE_2MA); //  Check datasheet.
   si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_8MA); 
   //unsigned long calfreq = 2500000UL;
   unsigned long calfreq = 2500000UL;
-  si5351.set_freq(calfreq*100, SI5351_CLK2);  // set calibration frequency to 2.5 MHz
-  si5351.output_enable(SI5351_CLK2, 1);   // Enable output  
+  si5351.set_freq(calfreq*100, CALCLK);  // set calibration frequency to 2.5 MHz
+  si5351.output_enable(CALCLK, 1);   // Enable output  
   si5351.output_enable(SI5351_CLK0, 0);   // disable output 
 
 }
@@ -127,12 +145,12 @@ void PPSinterrupt()
  
   tcount++;
  
-/*   if (tcount % 2 == 0)
-  {
-   digitalWrite(DBGPIN, HIGH);
-  }
-  else
-  {digitalWrite(DBGPIN, LOW);} */
+  // if (tcount % 2 == 0)
+  // {
+  //  digitalWrite(DBGPIN, HIGH);
+  // }
+  // else
+  // {digitalWrite(DBGPIN, LOW);}
 
   if (CalibrationDone == true) return;
   if (tcount == 4)  // Start counting the 2.5 MHz signal from Si5351A CLK0
@@ -144,7 +162,7 @@ void PPSinterrupt()
   else if (tcount == 14)  //The 10 second counting time has elapsed - stop counting
   {     
 
-    SiCnt=TC4->COUNT32.COUNT.reg - SiCnt +40UL; // 40 is a fudge factor
+    SiCnt=TC4->COUNT32.COUNT.reg - SiCnt +BIAS_ERROR; // BIAS_ERROR is a fudge factor
     XtalFreq =  SiCnt; 
     correction = 25000000./(float)XtalFreq;
     // I found that adjusting the transmit freq gives a cleaner signal than setting ppb
